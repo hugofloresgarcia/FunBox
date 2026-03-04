@@ -62,3 +62,7 @@ target_link_libraries(sim_runner PUBLIC daisy_mock)
 # ---------- Milestone 4: audio callback harness ----------
 add_executable(test_harness tests/test_harness.cpp)
 target_link_libraries(test_harness PRIVATE sim_runner daisy_mock)
+
+# ---------- Milestone 5: WAV I/O ----------
+add_executable(test_wav_io tests/test_wav_io.cpp)
+target_include_directories(test_wav_io PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/harness)

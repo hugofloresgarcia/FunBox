@@ -51,3 +51,14 @@ target_link_libraries(test_controls PRIVATE daisy_mock)
 # ---------- Milestone 3: DaisySP native ----------
 add_executable(test_daisysp tests/test_daisysp.cpp)
 target_link_libraries(test_daisysp PRIVATE daisysp)
+
+# Sim runner library
+add_library(sim_runner STATIC harness/sim_runner.cpp)
+target_include_directories(sim_runner PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/harness
+)
+target_link_libraries(sim_runner PUBLIC daisy_mock)
+
+# ---------- Milestone 4: audio callback harness ----------
+add_executable(test_harness tests/test_harness.cpp)
+target_link_libraries(test_harness PRIVATE sim_runner daisy_mock)

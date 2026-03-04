@@ -2,6 +2,11 @@
 #include <chrono>
 #include <thread>
 
+namespace sim
+{
+    bool break_on_delay = false;
+}
+
 namespace daisy
 {
 
@@ -23,6 +28,8 @@ uint32_t System::GetUs()
 
 void System::Delay(uint32_t delay_ms)
 {
+    if (sim::break_on_delay)
+        throw sim::InitDone();
     std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
 }
 

@@ -24,8 +24,12 @@ target_include_directories(daisy_mock PUBLIC
 )
 
 # DaisySP: pure DSP library compiled natively
+set(DAISYSP_LGPL_DIR ${REPO_ROOT}/DaisySP/DaisySP-LGPL/Source)
+
 file(GLOB_RECURSE DAISYSP_SOURCES ${DAISYSP_DIR}/*.cpp)
-add_library(daisysp STATIC ${DAISYSP_SOURCES})
+file(GLOB_RECURSE DAISYSP_LGPL_SOURCES ${DAISYSP_LGPL_DIR}/*.cpp)
+add_library(daisysp STATIC ${DAISYSP_SOURCES} ${DAISYSP_LGPL_SOURCES})
+target_compile_definitions(daisysp PUBLIC USE_DAISYSP_LGPL=1)
 target_include_directories(daisysp PUBLIC
     ${DAISYSP_DIR}
     ${DAISYSP_DIR}/Control
@@ -38,7 +42,19 @@ target_include_directories(daisysp PUBLIC
     ${DAISYSP_DIR}/Sampling
     ${DAISYSP_DIR}/Synthesis
     ${DAISYSP_DIR}/Utility
+    ${DAISYSP_LGPL_DIR}
+    ${DAISYSP_LGPL_DIR}/Control
+    ${DAISYSP_LGPL_DIR}/Dynamics
+    ${DAISYSP_LGPL_DIR}/Effects
+    ${DAISYSP_LGPL_DIR}/Filters
+    ${DAISYSP_LGPL_DIR}/PhysicalModeling
+    ${DAISYSP_LGPL_DIR}/Synthesis
+    ${DAISYSP_LGPL_DIR}/Utility
 )
+
+# Common paths
+set(FUNBOX_INCLUDE ${REPO_ROOT}/include)
+set(SOFTWARE_DIR ${REPO_ROOT}/software)
 
 # ---------- Milestone 1: compilation test ----------
 add_executable(test_compile tests/test_compile.cpp)
@@ -66,3 +82,32 @@ target_link_libraries(test_harness PRIVATE sim_runner daisy_mock)
 # ---------- Milestone 5: WAV I/O ----------
 add_executable(test_wav_io tests/test_wav_io.cpp)
 target_include_directories(test_wav_io PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/harness)
+
+# ==========================================================
+# Pedal simulation executables
+# ==========================================================
+
+# Helper function: build a pedal sim executable
+function(add_pedal_sim name pedal_source)
+    set_source_files_properties(${pedal_source} PROPERTIES
+        COMPILE_DEFINITIONS "main=pedal_main"
+    )
+    add_executable(sim_${name}
+        harness/sim_main.cpp
+        ${pedal_source}
+        ${ARGN}
+    )
+    target_link_libraries(sim_${name} PRIVATE sim_runner daisy_mock daisysp)
+    target_include_directories(sim_${name} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/harness
+        ${FUNBOX_INCLUDE}
+    )
+endfunction()
+
+# ---------- Milestone 6: GuitarSynth ----------
+add_pedal_sim(guitarsynth
+    ${SOFTWARE_DIR}/GuitarSynth/guitarsynth.cpp
+)
+target_include_directories(sim_guitarsynth PRIVATE
+    ${SOFTWARE_DIR}/GuitarSynth/lib
+)

@@ -4,8 +4,8 @@ project(funbox_sim CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Repo root (two levels up from software/sim)
-set(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+# Repo root (one level up from scratch/)
+set(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set(DAISYSP_DIR ${REPO_ROOT}/DaisySP/Source)
 
 # Mock library: replaces libDaisy for host-native builds

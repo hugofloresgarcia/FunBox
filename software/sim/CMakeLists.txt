@@ -4,8 +4,8 @@ project(funbox_sim CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Repo root (one level up from scratch/)
-set(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
+# Repo root (two levels up from software/sim)
+set(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(DAISYSP_DIR ${REPO_ROOT}/DaisySP/Source)
 
 # Mock library: replaces libDaisy for host-native builds
@@ -98,7 +98,6 @@ function(add_pedal_sim name pedal_source)
         ${ARGN}
     )
     target_link_libraries(sim_${name} PRIVATE sim_runner daisy_mock daisysp)
-    target_compile_definitions(sim_${name} PRIVATE SIM_BUILD)
     target_include_directories(sim_${name} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/harness
         ${FUNBOX_INCLUDE}
@@ -127,4 +126,12 @@ add_pedal_sim(boca
 )
 target_include_directories(sim_boca PRIVATE
     ${SOFTWARE_DIR}/Boca/lib
+)
+
+# ---------- SubNUp ----------
+add_pedal_sim(subnup
+    ${SOFTWARE_DIR}/SubNUp/subnup.cpp
+)
+target_include_directories(sim_subnup PRIVATE
+    ${SOFTWARE_DIR}/SubNUp/lib
 )

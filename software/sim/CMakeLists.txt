@@ -111,3 +111,11 @@ add_pedal_sim(guitarsynth
 target_include_directories(sim_guitarsynth PRIVATE
     ${SOFTWARE_DIR}/GuitarSynth/lib
 )
+
+# ---------- Milestone 7: Cenote ----------
+add_pedal_sim(cenote
+    ${SOFTWARE_DIR}/Cenote/cenote.cpp
+)
+target_include_directories(sim_cenote PRIVATE
+    ${SOFTWARE_DIR}/Cenote/lib
+)

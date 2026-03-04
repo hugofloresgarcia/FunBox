@@ -22,3 +22,7 @@ target_include_directories(daisy_mock PUBLIC
 # ---------- Milestone 1: compilation test ----------
 add_executable(test_compile tests/test_compile.cpp)
 target_link_libraries(test_compile PRIVATE daisy_mock)
+
+# ---------- Milestone 2: control tests ----------
+add_executable(test_controls tests/test_controls.cpp)
+target_link_libraries(test_controls PRIVATE daisy_mock)

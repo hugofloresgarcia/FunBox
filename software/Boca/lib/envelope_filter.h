@@ -68,7 +68,7 @@ class EnvelopeFilterEngine
 
     // ~~~~~ parameter setters (call per-block) ~~~~~
 
-    void SetSensitivity(float s) { sensitivity_ = s * 4.f; }
+    void SetSensitivity(float s) { sensitivity_ = s * 8.f; }
 
     void SetRange(float r) { sweep_range_ = r; }
 
@@ -173,7 +173,7 @@ class EnvelopeFilterEngine
         float target_freq = linexp(mod, 0.f, 1.f, lo, hi);
 
         // Smooth cutoff to avoid zipper noise
-        daisysp::fonepole(cutoff_smooth_, target_freq, 0.002f);
+        daisysp::fonepole(cutoff_smooth_, target_freq, 0.02f);
         svf_.SetFreq(cutoff_smooth_);
 
         // Optional drive: add harmonics before the filter

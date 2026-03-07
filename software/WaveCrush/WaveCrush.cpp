@@ -1,30 +1,57 @@
 #include "daisy_petal.h"
 #include "daisysp.h"
 #include "funbox.h"
+
+#include "octave_engine.h"
+#include "multirate.h"
+#include "biquad.h"
+
 #include <cmath>
 
 using namespace daisy;
 using namespace daisysp;
 using namespace funbox;
 
+// ────────────────────────────────────────────────────────────────────────────
+// HARDWARE
+// ────────────────────────────────────────────────────────────────────────────
+
 DaisyPetal hw;
 Parameter knobBitDepth, knobCutoff, knobRes, knobSampleRate, knobRingFreq, knobMix;
 
-Oscillator carrier;
-Decimator  decimator;
-Svf        tone;
-CrossFade  mix;
-
-bool bypass;
+Led led1, led2;
 
 bool pswitch1[2], pswitch2[2], pswitch3[2], pdip[4];
 int  switch1[2], switch2[2], switch3[2], dip[4];
 
-Led led1, led2;
+// ────────────────────────────────────────────────────────────────────────────
+// DSP MODULES
+// ────────────────────────────────────────────────────────────────────────────
 
-int octave_mode = 0; // 0=off, 1=sub, 2=up
-bool last_positive = true;
-float sub_osc = 1.0f;
+// Octave engine (polyphonic, 80-band ERB-PS2 from SubNUp)
+OctaveEngine       octave;
+::Decimator        oct_decim;
+::Interpolator     oct_interp;
+::Biquad           eq_highshelf;
+::Biquad           eq_lowshelf;
+
+// Ring mod carrier
+Oscillator carrier;
+
+// Bitcrusher (explicit namespace to avoid collision with multirate::Decimator)
+daisysp::Decimator bitcrusher;
+
+// Tone filter + dry/wet mix
+Svf       tone;
+CrossFade mix;
+
+// ────────────────────────────────────────────────────────────────────────────
+// STATE
+// ────────────────────────────────────────────────────────────────────────────
+
+bool bypass = true;
+
+int octave_mode = 0; // 0=off, 1=sub (-1 oct), 2=up (+1 oct)
 
 bool bypass_rm = true;
 uint8_t rm_waveform = Oscillator::WAVE_SIN;
@@ -38,27 +65,30 @@ bool tone_pre = false;
 
 bool chaos_active = false;
 
+// ────────────────────────────────────────────────────────────────────────────
+// SWITCH CALLBACKS
+// ────────────────────────────────────────────────────────────────────────────
 
 void updateSwitch1() // Octave: left=off, center=sub, right=up
 {
-    if (pswitch1[0] == true) {        // left: off
+    if (pswitch1[0] == true) {
         octave_mode = 0;
-    } else if (pswitch1[1] == true) { // right: octave up
+    } else if (pswitch1[1] == true) {
         octave_mode = 2;
-    } else {                          // center: sub octave
+    } else {
         octave_mode = 1;
     }
 }
 
 void updateSwitch2() // Ring Mod: left=bypass, center=sine, right=square
 {
-    if (pswitch2[0] == true) {        // left: bypass
+    if (pswitch2[0] == true) {
         bypass_rm = true;
         rm_waveform = Oscillator::WAVE_SIN;
-    } else if (pswitch2[1] == true) { // right: square carrier
+    } else if (pswitch2[1] == true) {
         bypass_rm = false;
         rm_waveform = Oscillator::WAVE_POLYBLEP_SQUARE;
-    } else {                          // center: sine carrier
+    } else {
         bypass_rm = false;
         rm_waveform = Oscillator::WAVE_SIN;
     }
@@ -66,36 +96,36 @@ void updateSwitch2() // Ring Mod: left=bypass, center=sine, right=square
 
 void updateSwitch3() // Bitcrusher: left=bypass, center=on, right=extreme
 {
-    if (pswitch3[0] == true) {        // left: bypass
+    if (pswitch3[0] == true) {
         bypass_bc = true;
         bc_extreme = false;
-    } else if (pswitch3[1] == true) { // right: on + extreme SR reduction
+    } else if (pswitch3[1] == true) {
         bypass_bc = false;
         bc_extreme = true;
-    } else {                          // center: on
+    } else {
         bypass_bc = false;
         bc_extreme = false;
     }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// HARDWARE PROCESSING
+// ────────────────────────────────────────────────────────────────────────────
 
 void UpdateButtons()
 {
-    // FSW1: bypass toggle
     if (hw.switches[Funbox::FOOTSWITCH_1].FallingEdge())
     {
         bypass = !bypass;
         led1.Set(bypass ? 0.0f : 1.0f);
     }
 
-    // FSW2: momentary chaos
     chaos_active = hw.switches[Funbox::FOOTSWITCH_2].Pressed();
     led2.Set(chaos_active ? 1.0f : 0.0f);
 
     led1.Update();
     led2.Update();
 }
-
 
 void UpdateSwitches()
 {
@@ -106,8 +136,7 @@ void UpdateSwitches()
             changed1 = true;
         }
     }
-    if (changed1)
-        updateSwitch1();
+    if (changed1) updateSwitch1();
 
     bool changed2 = false;
     for (int i = 0; i < 2; i++) {
@@ -116,8 +145,7 @@ void UpdateSwitches()
             changed2 = true;
         }
     }
-    if (changed2)
-        updateSwitch2();
+    if (changed2) updateSwitch2();
 
     bool changed3 = false;
     for (int i = 0; i < 2; i++) {
@@ -126,8 +154,7 @@ void UpdateSwitches()
             changed3 = true;
         }
     }
-    if (changed3)
-        updateSwitch3();
+    if (changed3) updateSwitch3();
 
     for (int i = 0; i < 4; i++) {
         if (hw.switches[dip[i]].Pressed() != pdip[i]) {
@@ -140,6 +167,9 @@ void UpdateSwitches()
     tone_pre      = pdip[3];
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// AUDIO CALLBACK
+// ────────────────────────────────────────────────────────────────────────────
 
 static void AudioCallback(AudioHandle::InputBuffer  in,
                            AudioHandle::OutputBuffer out,
@@ -167,10 +197,10 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     carrier.SetAmp(1.0f);
 
     // Bitcrusher
-    decimator.SetBitcrushFactor(vBitDepth);
+    bitcrusher.SetBitcrushFactor(vBitDepth);
     float downsample = bc_extreme ? fclamp(vSampleRate * 2.0f, 0.0f, 1.0f) : vSampleRate;
-    decimator.SetDownsampleFactor(downsample);
-    decimator.SetSmoothCrushing(true);
+    bitcrusher.SetDownsampleFactor(downsample);
+    bitcrusher.SetSmoothCrushing(true);
 
     // Tone filter
     tone.SetFreq(vCutoff);
@@ -179,64 +209,96 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
     // Mix
     mix.SetPos(vMix);
 
-    for (size_t i = 0; i < size; i++)
+    // Process in 6-sample chunks (required by the octave engine's multirate pipeline)
+    float in_chunk[kResampleFactor];
+    float oct_chunk[kResampleFactor];
+
+    for (size_t i = 0; i < size; i += kResampleFactor)
     {
         if (bypass)
         {
-            out[0][i] = in[0][i];
-            out[1][i] = in[1][i];
-        }
-        else
-        {
-            float dry = in[0][i];
-            float sig = dry;
-
-            if (!reverse_order)
+            for (size_t j = 0; j < kResampleFactor; ++j)
             {
-                // Oct -> RM -> BC (default)
-                if (octave_mode == 1) {
-                    bool positive = (sig >= 0.0f);
-                    if (positive && !last_positive)
-                        sub_osc = -sub_osc;
-                    last_positive = positive;
-                    sig = sig + sig * sub_osc * 0.5f;
-                } else if (octave_mode == 2) {
-                    sig = fabsf(sig);
+                out[0][i + j] = in[0][i + j];
+                out[1][i + j] = in[1][i + j];
+            }
+            continue;
+        }
+
+        // Gather 6 input samples, optionally pre-processing with RM/BC in reverse mode
+        for (size_t j = 0; j < kResampleFactor; ++j)
+        {
+            float sig = in[0][i + j];
+
+            if (reverse_order && octave_mode != 0)
+            {
+                // BC -> RM run before octave in reverse mode
+                if (tone_pre) { tone.Process(sig); sig = tone.Low(); }
+                if (!bypass_bc)  sig = bitcrusher.Process(sig);
+                if (!bypass_rm)  sig = sig * carrier.Process();
+            }
+
+            in_chunk[j] = sig;
+        }
+
+        // Octave engine: decimate 6 → 1, process, interpolate 1 → 6
+        if (octave_mode != 0)
+        {
+            float decimated = oct_decim.Process(in_chunk);
+            octave.Process(decimated);
+
+            float oct_sig = 0.f;
+            if (octave_mode == 1)
+                oct_sig = octave.Down1();
+            else if (octave_mode == 2)
+                oct_sig = octave.Up1();
+
+            oct_interp.Process(oct_sig, oct_chunk);
+        }
+
+        // Per-sample output at 48 kHz
+        for (size_t j = 0; j < kResampleFactor; ++j)
+        {
+            float dry = in[0][i + j];
+            float sig;
+
+            if (octave_mode == 0)
+            {
+                // No octave: straight per-sample chain
+                sig = dry;
+
+                if (!reverse_order)
+                {
+                    if (tone_pre) { tone.Process(sig); sig = tone.Low(); }
+                    if (!bypass_rm)  sig = sig * carrier.Process();
+                    if (!bypass_bc)  sig = bitcrusher.Process(sig);
                 }
-
-                if (tone_pre) {
-                    tone.Process(sig);
-                    sig = tone.Low();
+                else
+                {
+                    if (!bypass_bc)  sig = bitcrusher.Process(sig);
+                    if (tone_pre) { tone.Process(sig); sig = tone.Low(); }
+                    if (!bypass_rm)  sig = sig * carrier.Process();
                 }
-
-                if (!bypass_rm)
-                    sig = sig * carrier.Process();
-
-                if (!bypass_bc)
-                    sig = decimator.Process(sig);
             }
             else
             {
-                // BC -> RM -> Oct (reverse)
-                if (!bypass_bc)
-                    sig = decimator.Process(sig);
+                // Octave active: apply EQ compensation to interpolated output
+                sig = oct_chunk[j];
+                sig = eq_highshelf.Process(sig);
+                sig = eq_lowshelf.Process(sig);
 
-                if (tone_pre) {
-                    tone.Process(sig);
-                    sig = tone.Low();
+                if (!reverse_order)
+                {
+                    // Oct already done; apply RM -> BC
+                    if (tone_pre) { tone.Process(sig); sig = tone.Low(); }
+                    if (!bypass_rm)  sig = sig * carrier.Process();
+                    if (!bypass_bc)  sig = bitcrusher.Process(sig);
                 }
-
-                if (!bypass_rm)
-                    sig = sig * carrier.Process();
-
-                if (octave_mode == 1) {
-                    bool positive = (sig >= 0.0f);
-                    if (positive && !last_positive)
-                        sub_osc = -sub_osc;
-                    last_positive = positive;
-                    sig = sig + sig * sub_osc * 0.5f;
-                } else if (octave_mode == 2) {
-                    sig = fabsf(sig);
+                else
+                {
+                    // BC/RM already applied pre-decimation; carrier still needs to advance
+                    if (!bypass_rm && reverse_order)
+                        carrier.Process();
                 }
             }
 
@@ -248,24 +310,20 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
             float out_sample = mix.Process(dry, sig);
             out_sample = SoftClip(out_sample);
 
-            if (pdip[0]) {
-                out[0][i] = out_sample;
-                out[1][i] = out_sample;
-            } else {
-                out[0][i] = out_sample;
-                out[1][i] = out_sample;
-            }
+            out[0][i + j] = out_sample;
+            out[1][i + j] = out_sample;
         }
     }
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// MAIN
+// ────────────────────────────────────────────────────────────────────────────
 
 int main(void)
 {
-    float samplerate;
-
     hw.Init();
-    samplerate = hw.AudioSampleRate();
+    float samplerate = hw.AudioSampleRate();
 
     hw.SetAudioBlockSize(48);
 
@@ -301,19 +359,32 @@ int main(void)
     knobRingFreq.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, Parameter::LOGARITHMIC);
     knobMix.Init(hw.knob[Funbox::KNOB_6], 0.0f, 1.0f, Parameter::LINEAR);
 
-    // DSP modules
+    // Octave engine (runs at sr/6 = 8 kHz)
+    float octave_sr = samplerate / static_cast<float>(kResampleFactor);
+    octave.Init(octave_sr);
+
+    // EQ compensation for octave engine filter bank response
+    eq_highshelf.Init(samplerate);
+    eq_highshelf.SetHighShelf(140.f, -11.f);
+    eq_lowshelf.Init(samplerate);
+    eq_lowshelf.SetLowShelf(160.f, 5.f);
+
+    // Ring mod carrier
     carrier.Init(samplerate);
     carrier.SetFreq(440.0f);
     carrier.SetAmp(1.0f);
     carrier.SetWaveform(Oscillator::WAVE_SIN);
 
-    decimator.Init();
-    decimator.SetSmoothCrushing(true);
+    // Bitcrusher
+    bitcrusher.Init();
+    bitcrusher.SetSmoothCrushing(true);
 
+    // Tone filter
     tone.Init(samplerate);
     tone.SetFreq(16000.0f);
     tone.SetRes(0.1f);
 
+    // Dry/wet mix
     mix.Init(CROSSFADE_CPOW);
 
     // LEDs and bypass

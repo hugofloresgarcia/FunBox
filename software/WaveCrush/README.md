@@ -1,6 +1,8 @@
 # WaveCrush
 
-A synth-destruction pedal for the FunBox platform. Three stages -- octave, ring modulator, and bitcrusher -- each independently switchable via the 3-way toggles. A resonant tone filter shapes the output. Extremely synthy, zero reverb.
+A synth-destruction pedal for the FunBox platform. Three stages -- polyphonic octave, ring modulator, and bitcrusher -- each independently switchable via the 3-way toggles. A resonant tone filter shapes the output. Extremely synthy, zero reverb.
+
+The octave engine uses the ERB-PS2 algorithm from [SubNUp](../SubNUp/) (80-band filter bank, polyphonic, handles chords). ~4 ms latency on the octave stage.
 
 ## Controls
 
@@ -24,7 +26,7 @@ Sample Rate | Ring Mod |    Mix
 
 | Switch | Left | Center | Right |
 |--------|------|--------|-------|
-| 1 (Octave) | Off | Sub octave (square, -1 oct) | Octave up (rectifier) |
+| 1 (Octave) | Off | Sub octave (-1 oct, polyphonic) | Octave up (+1 oct, polyphonic) |
 | 2 (Ring Mod) | Bypass | Sine carrier | Square carrier |
 | 3 (Bitcrusher) | Bypass | On | On + extreme SR reduction |
 

@@ -72,26 +72,31 @@ static void test_switch()
     dsy_gpio_pin dummy = {DSY_GPIOA, 0};
     sw.Init(dummy, 0.f);
 
+    sw.Debounce();
     assert(!sw.Pressed());
     assert(!sw.RisingEdge());
     assert(!sw.FallingEdge());
 
     sw.SetState(true);
+    sw.Debounce();
     assert(sw.Pressed());
     assert(sw.RisingEdge());
     assert(!sw.FallingEdge());
 
     sw.SetState(true);
+    sw.Debounce();
     assert(sw.Pressed());
     assert(!sw.RisingEdge());
     assert(!sw.FallingEdge());
 
     sw.SetState(false);
+    sw.Debounce();
     assert(!sw.Pressed());
     assert(!sw.RisingEdge());
     assert(sw.FallingEdge());
 
     sw.SetState(false);
+    sw.Debounce();
     assert(!sw.Pressed());
     assert(!sw.RisingEdge());
     assert(!sw.FallingEdge());

@@ -68,7 +68,7 @@ class EnvelopeFilterEngine
 
     // ~~~~~ parameter setters (call per-block) ~~~~~
 
-    void SetSensitivity(float s) { sensitivity_ = s * 8.f; }
+    void SetSensitivity(float s) { sensitivity_ = s * 64.f; }
 
     void SetRange(float r) { sweep_range_ = r; }
 
@@ -96,8 +96,8 @@ class EnvelopeFilterEngine
                 release_coeff_ = 1.f - expf(-1.f / (0.100f  * sr_));
                 break;
             case Response::SLOW:
-                attack_coeff_  = 1.f - expf(-1.f / (0.020f  * sr_));
-                release_coeff_ = 1.f - expf(-1.f / (0.300f  * sr_));
+                attack_coeff_  = 1.f - expf(-1.f / (0.050f  * sr_));
+                release_coeff_ = 1.f - expf(-1.f / (0.800f  * sr_));
                 break;
         }
     }

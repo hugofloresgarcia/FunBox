@@ -27,10 +27,11 @@ class Switch
 
     void SetState(bool pressed);
 
-    bool  pressed_      = false;
-    bool  rising_       = false;
-    bool  falling_      = false;
-    float time_held_ms_ = 0.f;
+    bool  pressed_          = false;
+    bool  rising_           = false;
+    bool  falling_          = false;
+    float time_held_ms_     = 0.f;
+    bool  prev_debounced_   = false;
 };
 
 } // namespace daisy

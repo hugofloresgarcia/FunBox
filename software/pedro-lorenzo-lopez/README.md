@@ -15,6 +15,14 @@ The input signal is pitch-tracked via zero-crossings and used to drive three voi
 
 ## Controls
 
+```
+  Mod Rate   | Master Int |  Sub Int
+ Square Lvl  | Master Lvl |  Sub Lvl
+
+ -2oct / Uni / -1oct | Glide / Off / Vib  | Uni / Off / Osc
+         SW1         |        SW2         |       SW3
+```
+
 ### Knobs
 
 | Knob | Parameter | Notes |

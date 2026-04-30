@@ -29,6 +29,14 @@ Every 128 samples (~2.67 ms), the pedal:
 
 ## Controls
 
+```
+  Waveform   |   Cutoff   | Resonance
+ Env Depth   | Synth Lvl  |    Mix
+
+ Saw / Square / Sine | LP / BP / HP | -1oct / Uni / +1oct
+         SW1         |     SW2      |        SW3
+```
+
 ### Knobs
 
 | Knob | Parameter | Range |
@@ -40,7 +48,7 @@ Every 128 samples (~2.67 ms), the pedal:
 | 5 | Synth Level | Output level of the synth voices |
 | 6 | Mix | Dry/wet blend |
 
-### 3-Way Switches
+### Switches
 
 | Switch | Left | Center | Right |
 |--------|------|--------|-------|

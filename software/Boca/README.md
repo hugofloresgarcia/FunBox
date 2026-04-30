@@ -18,6 +18,14 @@ The envelope follower and LFO are summed additively:
 
 ## Controls
 
+```
+ Sensitivity |   Range    | Resonance
+  LFO Rate   | LFO Depth  |    Mix
+
+  LP / BP / HP   | Down / Up / Fmt  | Fast / Med / Slow
+      SW1        |       SW2        |       SW3
+```
+
 ### Knobs
 
 | Knob | Parameter | Notes |

@@ -6,10 +6,11 @@ namespace daisy
 void Switch::Init(dsy_gpio_pin pin, float update_rate, Type t, Polarity pol, Pull pu)
 {
     (void)pin; (void)update_rate; (void)t; (void)pol; (void)pu;
-    pressed_ = false;
-    rising_  = false;
-    falling_ = false;
-    time_held_ms_ = 0.f;
+    pressed_        = false;
+    rising_         = false;
+    falling_        = false;
+    time_held_ms_   = 0.f;
+    prev_debounced_ = false;
 }
 
 void Switch::Init(dsy_gpio_pin pin, float update_rate)
@@ -19,21 +20,18 @@ void Switch::Init(dsy_gpio_pin pin, float update_rate)
 
 void Switch::Debounce()
 {
-    // In the sim, state is set directly via SetState()
+    rising_  = pressed_ && !prev_debounced_;
+    falling_ = !pressed_ && prev_debounced_;
+    if (pressed_)
+        time_held_ms_ += 1.f;
+    else
+        time_held_ms_ = 0.f;
+    prev_debounced_ = pressed_;
 }
 
 void Switch::SetState(bool pressed)
 {
-    bool was_pressed = pressed_;
     pressed_ = pressed;
-    rising_  = pressed && !was_pressed;
-    falling_ = !pressed && was_pressed;
-    if (pressed && was_pressed)
-        time_held_ms_ += 1.f;
-    else if (pressed && !was_pressed)
-        time_held_ms_ = 0.f;
-    else
-        time_held_ms_ = 0.f;
 }
 
 } // namespace daisy

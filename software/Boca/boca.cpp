@@ -325,6 +325,8 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         prev_bypass_state = new_bypass_state;
     }
 
+    bool active = fsw1.state;
+
     uint8_t ramp_finished = 0;
     for (size_t i = 0; i < size; i++)
     {
@@ -333,14 +335,16 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
         float ramp_val = bypass_ramp.Process(&ramp_finished);
 
-        float filtered;
-        if (formant_mode) {
-            float mod = env_filter.ProcessMod(sig);
-            SIM_PROBE(p_env_mod, mod);
-            filtered = formant_filter.Process(sig, mod);
-        } else {
-            filtered = env_filter.Process(sig);
-            SIM_PROBE(p_env_mod, env_filter.GetModValue());
+        float filtered = 0.f;
+        if (active) {
+            if (formant_mode) {
+                float mod = env_filter.ProcessMod(sig);
+                SIM_PROBE(p_env_mod, mod);
+                filtered = formant_filter.Process(sig, mod);
+            } else {
+                filtered = env_filter.Process(sig);
+                SIM_PROBE(p_env_mod, env_filter.GetModValue());
+            }
         }
 
         SIM_PROBE(p_filtered, filtered);

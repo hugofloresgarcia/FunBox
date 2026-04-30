@@ -83,6 +83,14 @@ target_link_libraries(test_harness PRIVATE sim_runner daisy_mock)
 add_executable(test_wav_io tests/test_wav_io.cpp)
 target_include_directories(test_wav_io PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/harness)
 
+# ---------- Boca envelope filter unit test ----------
+add_executable(test_boca_envelope tests/test_boca_envelope.cpp)
+target_link_libraries(test_boca_envelope PRIVATE daisysp)
+target_include_directories(test_boca_envelope PRIVATE
+    ${SOFTWARE_DIR}/Boca/lib
+    ${FUNBOX_INCLUDE}
+)
+
 # ==========================================================
 # Pedal simulation executables
 # ==========================================================

@@ -1,25 +1,28 @@
 # WaveCrush
 
-A synth-destruction pedal for the FunBox platform. Three stages -- polyphonic octave, ring modulator, and bitcrusher -- each independently switchable via the 3-way toggles. A resonant tone filter shapes the output. Extremely synthy, zero reverb.
+A synth-destruction pedal for the FunBox platform inspired by the OP-1 Terminal effect. Polyphonic octave shifting feeds into a bitcrusher with a switchable anti-aliasing pre-filter that shapes the character of the destruction. A post-tone filter tames the output. Extremely synthy, zero reverb.
 
 The octave engine uses the ERB-PS2 algorithm from [SubNUp](../SubNUp/) (80-band filter bank, polyphonic, handles chords). ~4 ms latency on the octave stage.
 
 ## Controls
 
-### Knobs
+```
+ Bit Depth   | Pre Cutoff |  Pre Reso
+ Sample Rate |    Tone    |    Mix
 
+  Off / Sub / Up  |  HP / BP / LP  | Byp / On / Extreme
+       SW1        |      SW2       |        SW3
 ```
- Bit Depth  |  Cutoff  |  Resonance
-Sample Rate | Ring Mod |    Mix
-```
+
+### Knobs
 
 | Knob | Parameter | Notes |
 |------|-----------|-------|
 | 1 | Bit Depth | Bit reduction amount. 0 = clean, full CW = crushed |
-| 2 | Cutoff | Tone filter cutoff (200 Hz - 16 kHz) |
-| 3 | Resonance | Tone filter resonance (0 - 0.95). Cranked = screamy |
+| 2 | Pre Cutoff | Anti-aliasing filter cutoff before the bitcrusher (200 Hz - 16 kHz). Lower = smoother, more controlled destruction |
+| 3 | Pre Reso | Anti-aliasing filter resonance (0 - 0.95). Cranked = screaming harmonics that get quantized |
 | 4 | Sample Rate | Downsample amount. 0 = clean, full CW = destroyed |
-| 5 | Ring Mod Freq | Carrier oscillator frequency. Range set by DIP 3 |
+| 5 | Tone | Post-filter lowpass cutoff (200 Hz - 16 kHz). Tames harshness after the crusher |
 | 6 | Mix | Dry/wet blend (constant-power crossfade) |
 
 ### Switches
@@ -27,33 +30,39 @@ Sample Rate | Ring Mod |    Mix
 | Switch | Left | Center | Right |
 |--------|------|--------|-------|
 | 1 (Octave) | Off | Sub octave (-1 oct, polyphonic) | Octave up (+1 oct, polyphonic) |
-| 2 (Ring Mod) | Bypass | Sine carrier | Square carrier |
+| 2 (Pre-Filter Model) | Highpass | Bandpass | Lowpass |
 | 3 (Bitcrusher) | Bypass | On | On + extreme SR reduction |
+
+Switch 2 selects the anti-aliasing filter type before the bitcrusher. Different models produce very different aliasing characters:
+- **Lowpass** -- classic anti-aliasing, smooth and warm
+- **Bandpass** -- resonant peak only, nasty focused crush on a narrow band
+- **Highpass** -- removes bass before crushing, thin and crunchy
 
 ### Footswitches
 
 | Footswitch | Function |
 |------------|----------|
 | FSW1 | Bypass toggle (LED 1 = active) |
-| FSW2 | Momentary "chaos" -- maxes ring mod frequency while held (LED 2 = active) |
+| FSW2 | Octave up toggle (LED 2 = active) -- always adds +1 oct, stacks with SW1 |
+
+FSW2 adds a polyphonic octave-up voice independently of Switch 1. When both FSW2 and SW1=Sub are active, you get sub octave and octave up summed together.
 
 ### DIP Switches
 
 | DIP | Function |
 |-----|----------|
 | 1 | Mono (off) / MISO stereo (on) |
-| 2 | Chain order -- off = Oct->RM->BC, on = BC->RM->Oct |
-| 3 | Ring mod range -- off = low (20-1000 Hz), on = high (200-5000 Hz) |
-| 4 | Tone position -- off = post (end of chain), on = pre (between stages) |
+| 2 | Pre-filter position -- off = before bitcrusher (Terminal style), on = after bitcrusher |
+| 3 | Noise gate -- off = disabled, on = smooth input gate (~-60 dB threshold) |
+| 4 | Reserved |
 
 ## Signal Chain
 
 ```
-in -> Octave -> Ring Mod -> Bitcrusher -> Tone Filter -> Dry/Wet Mix -> SoftClip -> out
-       (SW1)     (SW2)       (SW3)       (K2/K3)          (K6)
+in -> Octave -> Pre-Filter -> Bitcrusher -> Tone -> Dry/Wet Mix -> SoftClip -> out
+       (SW1)   (K2/K3, SW2)  (K1/K4, SW3)  (K5)      (K6)
 
-DIP 2 on: reverses stage order to BC -> RM -> Oct
-DIP 4 on: moves tone filter between first and second stages
+DIP 2 on: moves pre-filter after the bitcrusher
 ```
 
 ## Build

@@ -12,6 +12,14 @@ No FFT, no delay buffers. All state fits in ~8 KB of SRAM.
 
 ## Controls
 
+```
+     Dry     |     Up     |    Sub
+    Sub2     |    Tone    |  Output
+
+ All / Up+Sub / Sub+Sub2  | Deep / Normal / Tight |     (reserved)
+           SW1            |          SW2          |        SW3
+```
+
 ### Knobs
 
 | Knob | Parameter | Notes |
